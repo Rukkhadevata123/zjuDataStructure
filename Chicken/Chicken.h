@@ -49,6 +49,7 @@ public:
   ~Chicken() {
     if (name != nullptr) {
       delete[] name;
+      name = nullptr;
     }
   }
 
@@ -57,6 +58,7 @@ public:
   void setName(const char *_name) {
     if (name != nullptr) {
       delete[] name; // prevent memory leak
+      name = nullptr;
     }
     name = new char[strlen(_name) + 1];
     strcpy(name, _name);
