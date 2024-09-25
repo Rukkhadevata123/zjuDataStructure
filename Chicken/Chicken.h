@@ -21,6 +21,10 @@ public:
   Chicken(const Chicken &other) {
     age = other.age;
     if (other.name != nullptr) {
+      if (name != nullptr) {
+        delete[] name;
+        name = nullptr;
+      }
       name = new char[strlen(other.name) + 1];
       strcpy(name, other.name);
     }
@@ -29,8 +33,11 @@ public:
   Chicken &operator=(const Chicken &other) {
     if (this != &other) {
       age = other.age;
-      if (other.name != nullptr && name != nullptr) {
-        delete[] name;
+      if (other.name != nullptr) {
+        if (name != nullptr) {
+          delete[] name;
+          name = nullptr;
+        }
         name = new char[strlen(other.name) + 1];
         strcpy(name, other.name);
       }
