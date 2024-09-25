@@ -64,6 +64,9 @@ public:
   void setAge(int _age) { age = _age; }
 
   void setName(const char *_name) {
+    if (name == _name) {
+      return;
+    }
     if (name != nullptr) {
       delete[] name; // prevent memory leak
       name = nullptr;
