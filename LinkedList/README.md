@@ -37,6 +37,8 @@
 #### 操作后变化
 - 如果 `currentPos` 为空，不进行任何操作。
 - 如果 `currentPos` 是头节点，`head` 更新为 `head->next`，并删除原头节点，`currentPos` 更新为新的头节点。
+  - **链表只有一个元素**：正确清空链表。
+  - **链表有多个元素**：如果 `find` 方法找到头节点并将 `currentPos` 设置为头节点，`remove` 方法正确删除头节点而不会将链表设为空，并将 `currentPos` 指向下一个节点。在 `find` 头元素时会发生这种情况。
 - 否则，遍历链表找到 `currentPos` 的前一个节点，将其 `next` 指针更新为 `currentPos->next`，删除 `currentPos`，并将 `currentPos` 更新为前一个节点。
 - 链表的大小 `size` 减少 1。
 

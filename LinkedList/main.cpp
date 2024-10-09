@@ -3,8 +3,11 @@
 int main() {
   // SingleLinkedList<int> a;
   SingleLinkedList<int> a{1, 2, 3, 4, 5};
-  // a.remove();
+  //a.find(1);
+  //a.remove();
+  //a.remove();
   int a_get = a.getCurrentVal();
+  a.printList();
   std::cout
       << a_get
       << std::
