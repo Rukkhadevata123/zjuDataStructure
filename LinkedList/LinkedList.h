@@ -42,14 +42,14 @@ public:
 
   T getCurrentVal() const {
     if (currentPos == nullptr) {
-      throw std::runtime_error("No current element");
+      throw std::runtime_error( "Empty current position! Can't get value!");
     }
     return currentPos->data;
   }
 
   void setCurrentVal(const T &val) {
     if (currentPos == nullptr) {
-      throw std::runtime_error("No current element");
+      throw std::runtime_error( "Empty current position! Can't set value!");
     }
     currentPos->data = val;
   }
@@ -81,23 +81,20 @@ public:
     return false;
   }
   void insert(const T &val) {
-    Node *newNode = new Node(val);
-    if (head == nullptr) {
-      head = newNode;
-      currentPos = head;
-    } else if (currentPos == nullptr) {
-      newNode->next = head;
-      head = newNode;
-    } else {
-      newNode->next = currentPos->next;
-      currentPos->next = newNode;
-    }
-    currentPos = newNode;
-    ++size;
+      Node *newNode = new Node(val);
+      if (head == nullptr) {
+          head = newNode;
+          currentPos = head;
+      } else {
+          newNode->next = currentPos->next;
+          currentPos->next = newNode;
+          currentPos = newNode;
+      }
+      ++size;
   }
   void remove() {
     if (currentPos == nullptr) {
-      throw std::runtime_error("No current element");
+      return;
     }
     if (currentPos == head) {
       Node *temp = head;
@@ -113,7 +110,7 @@ public:
       }
       prev->next = currentPos->next;
       delete currentPos;
-      currentPos = prev->next;
+      currentPos = prev;
     }
     --size;
   }
@@ -121,9 +118,9 @@ public:
   void printList() const {
     Node *p = head;
     while (p != nullptr) {
-      std::cout << p->data << "->";
+      std::cout << p->data << "\t";
       p = p->next;
     }
-    std::cout << "nullptr" << std::endl;
+    std::cout << std::endl;
   }
 };
