@@ -1,0 +1,245 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1.64723cm} % 调整 topmargin
+\setlength{\headheight}{12.64723pt} % 设置 headheight
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{黎学圣, 3230102179}
+\chead{数据结构与算法第四次作业}
+\rhead{Oct.16th, 2024}
+
+\section{链表实现的函数清单}
+
+以下是链表实现的函数清单：
+
+\subsection{构造函数和析构函数}
+\begin{itemize}
+  \item \texttt{List()}
+  \item \texttt{List(std::initializer\_list<T> il)}
+  \item \texttt{List(const List \&rhs)}
+  \item \texttt{List(List \&\&rhs)}
+  \item \texttt{\textasciitilde List()}
+\end{itemize}
+
+\subsection{赋值运算符}
+\begin{itemize}
+  \item \texttt{List \&operator=(List copy)}
+\end{itemize}
+
+\subsection{迭代器相关函数}
+\begin{itemize}
+  \item \texttt{iterator begin()}
+  \item \texttt{const\_iterator begin() const}
+  \item \texttt{iterator end()}
+  \item \texttt{const\_iterator end() const}
+\end{itemize}
+
+\subsection{容量相关函数}
+\begin{itemize}
+  \item \texttt{int size() const}
+  \item \texttt{bool empty() const}
+  \item \texttt{void clear()}
+\end{itemize}
+
+\subsection{元素访问函数}
+\begin{itemize}
+  \item \texttt{T \&front()}
+  \item \texttt{const T \&front() const}
+  \item \texttt{T \&back()}
+  \item \texttt{const T \&back() const}
+\end{itemize}
+
+\subsection{修改器函数}
+\begin{itemize}
+  \item \texttt{void push\_front(const T \&elem)}
+  \item \texttt{void push\_front(T \&\&elem)}
+  \item \texttt{void push\_back(const T \&elem)}
+  \item \texttt{void push\_back(T \&\&elem)}
+  \item \texttt{void pop\_front()}
+  \item \texttt{void pop\_back()}
+  \item \texttt{iterator insert(iterator itr, const T \&elem)}
+  \item \texttt{iterator insert(iterator itr, T \&\&elem)}
+  \item \texttt{iterator erase(iterator itr)}
+  \item \texttt{iterator erase(iterator from, iterator to)}
+\end{itemize}
+
+\subsection{私有成员函数}
+\begin{itemize}
+  \item \texttt{void init()}
+\end{itemize}
+
+\section{重要函数说明}
+
+在本节中，我们将详细说明链表实现中的两个重要函数：\texttt{insert} 和 \texttt{erase}。
+
+\subsection{insert 函数}
+
+\texttt{insert} 函数用于在链表的指定位置插入一个元素。它有两个重载版本，一个接受左值引用，另一个接受右值引用。
+
+\begin{itemize}
+  \item \texttt{iterator insert(iterator itr, const T \&elem)}: 该版本接受一个左值引用的元素，并在指定位置插入该元素。
+  \item \texttt{iterator insert(iterator itr, T \&\&elem)}: 该版本接受一个右值引用的元素，并在指定位置插入该元素。
+\end{itemize}
+
+\textbf{实现原理}：
+
+\begin{enumerate}
+  \item 获取迭代器 \texttt{itr} 所指向的节点 \texttt{p}。
+  \item 增加链表的大小 \texttt{theSize}。
+  \item 创建一个新的节点，并将其插入到 \texttt{p} 的前面。
+  \item 更新新节点的前驱和后继指针。
+  \item 返回指向新插入节点的迭代器。
+\end{enumerate}
+
+\subsection{erase 函数}
+
+\texttt{erase} 函数用于删除链表中指定位置的元素。它也有两个重载版本，一个删除单个元素，另一个删除一个范围内的元素。
+
+\begin{itemize}
+  \item \texttt{iterator erase(iterator itr)}: 该版本删除 \texttt{itr} 所指向的单个元素。
+  \item \texttt{iterator erase(iterator from, iterator to)}: 该版本删除从 \texttt{from} 到 \texttt{to} 范围内的所有元素。
+\end{itemize}
+
+\textbf{实现原理}：
+
+\begin{enumerate}
+  \item 获取迭代器 \texttt{itr} 所指向的节点 \texttt{p}。
+  \item 保存 \texttt{p} 的后继节点的迭代器作为返回值。
+  \item 更新 \texttt{p} 的前驱和后继节点的指针，使它们跳过 \texttt{p}。
+  \item 删除节点 \texttt{p} 并减少链表的大小 \texttt{theSize}。
+  \item 返回指向 \texttt{p} 后继节点的迭代器。
+\end{enumerate}
+
+\section{测试的设计与结果}
+
+为了验证链表实现的正确性，我们编写了一系列测试用例，涵盖了链表的主要功能。以下是测试的具体步骤和结果说明：
+
+\subsection{测试用例}
+
+\begin{itemize}
+  \item \textbf{push\_back 测试}：向链表末尾添加元素，并检查链表内容是否正确。
+  \item \textbf{push\_front 测试}：向链表头部添加元素，并检查链表内容是否正确。
+  \item \textbf{pop\_back 测试}：从链表末尾删除元素，并检查链表内容是否正确。
+  \item \textbf{pop\_front 测试}：从链表头部删除元素，并检查链表内容是否正确。
+  \item \textbf{size 测试}：检查链表的大小是否正确。
+  \item \textbf{empty 测试}：检查链表是否为空。
+  \item \textbf{insert 和 erase 测试}：在链表中插入和删除元素，并检查链表内容是否正确。
+  \item \textbf{initializer\_list 构造函数测试}：使用初始化列表创建链表，并检查链表内容是否正确。
+  \item \textbf{拷贝构造函数测试}：使用拷贝构造函数创建链表副本，并检查副本内容是否正确。
+  \item \textbf{移动构造函数测试}：使用移动构造函数创建链表，并检查原链表是否为空。
+  \item \textbf{赋值运算符测试}：使用赋值运算符复制链表，并检查复制后的链表内容是否正确。
+  \item \textbf{clear 测试}：清空链表，并检查链表是否为空。
+\end{itemize}
+
+\subsection{测试结果}
+
+所有测试用例均通过，具体结果如下：
+
+\begin{itemize}
+  \item \textbf{push\_back 测试}：链表内容为 \texttt{1 2 3}。
+  \item \textbf{push\_front 测试}：链表内容为 \texttt{0 1 2 3}。
+  \item \textbf{pop\_back 测试}：链表内容为 \texttt{0 1 2}。
+  \item \textbf{pop\_front 测试}：链表内容为 \texttt{1 2}。
+  \item \textbf{size 测试}：链表大小为 \texttt{2}。
+  \item \textbf{empty 测试}：链表为空状态为 \texttt{false}。
+  \item \textbf{insert 和 erase 测试}：链表内容为 \texttt{1 99 2}，删除最后一个元素后为 \texttt{1 99}。
+  \item \textbf{initializer\_list 构造函数测试}：链表内容为 \texttt{10 20 30 40}。
+  \item \textbf{拷贝构造函数测试}：链表副本内容为 \texttt{10 20 30 40}。
+  \item \textbf{移动构造函数测试}：链表内容为 \texttt{10 20 30 40}，原链表为空。
+  \item \textbf{赋值运算符测试}：链表内容为 \texttt{10 20 30 40}，修改后为 \texttt{10 20 30 40 50}，原链表内容不变。
+  \item \textbf{clear 测试}：链表大小为 \texttt{0}，链表为空状态为 \texttt{true}。
+\end{itemize}
+
+\subsection{Valgrind 测试结果}
+
+测试结果以 valgrind 的结果呈现，说明我们也没有发生内存泄漏：
+
+\begin{verbatim}
+==176073== Memcheck, a memory error detector
+==176073== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+==176073== Using Valgrind-3.24.0.GIT and LibVEX; rerun with -h for copyright info
+==176073== Command: ./List
+==176073== 
+Testing push_back...
+1 2 3 
+Testing push_front...
+0 1 2 3 
+Testing pop_back...
+0 1 2 
+Testing pop_front...
+1 2 
+List size: 2
+Testing empty function...
+List is empty: false
+Testing insert and erase...
+1 99 2 
+1 99 
+Testing initializer_list constructor...
+10 20 30 40 
+Testing copy constructor...
+10 20 30 40 
+Testing move constructor...
+10 20 30 40 
+After move, list3 size: 0
+Testing assignment operator...
+10 20 30 40 
+After modifying list5...
+list5: 10 20 30 40 50 
+list4: 10 20 30 40 
+Testing clear function...
+After clearing, list5 size: 0
+list5 is empty: true
+==176073== 
+==176073== HEAP SUMMARY:
+==176073==     in use at exit: 0 bytes in 0 blocks
+==176073==   total heap usage: 30 allocs, 30 frees, 75,424 bytes allocated
+==176073== 
+==176073== All heap blocks were freed -- no leaks are possible
+==176073== 
+==176073== For lists of detected and suppressed errors, rerun with: -s
+==176073== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{verbatim}
+
+通过这些测试，我们验证了链表实现的正确性和稳定性。
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
