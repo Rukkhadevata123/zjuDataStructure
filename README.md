@@ -7,4 +7,4 @@
  - Visual Studio Code 1.93.0
  - git version 2.46.2
  - GitHub Copilot v1.229.0
- - [Neovim](https://github.com/Rukkhadevata123/nvim-config) v0.10.1
+ - [Neovim](https://github.com/Rukkhadevata123/nvim-config) v0.9.5
