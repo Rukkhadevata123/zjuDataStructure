@@ -1,0 +1,315 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1.64723cm} % 调整 topmargin
+\setlength{\headheight}{12.64723pt} % 设置 headheight
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{listingsutf8}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+\usepackage{fontspec}
+\setmonofont{Noto Sans Mono}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em, inputencoding=utf8, showstringspaces=false, showspaces=false
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{黎学圣, 3230102179}
+\chead{数据结构与算法第五次作业}
+\rhead{Oct.30th, 2024}
+
+\section{函数清单}
+
+\begin{itemize}
+    \item \textbf{构造函数与析构函数}
+    \begin{itemize}
+        \item \verb|BinarySearchTree()|
+        \item \verb|BinarySearchTree(const BinarySearchTree &rhs)|
+        \item \verb|BinarySearchTree(BinarySearchTree &&rhs) noexcept|
+        \item \verb|~BinarySearchTree()|
+    \end{itemize}
+    \item \textbf{运算符重载}
+    \begin{itemize}
+        \item \verb|BinarySearchTree &operator=(const BinarySearchTree &rhs)|
+        \item \verb|BinarySearchTree &operator=(BinarySearchTree &&rhs) noexcept|
+    \end{itemize}
+    \item \textbf{成员函数}
+    \begin{itemize}
+        \item \verb|const Comparable &findMin() const|
+        \item \verb|const Comparable &findMax() const|
+        \item \verb|bool contains(const Comparable &x) const|
+        \item \verb|bool isEmpty() const|
+        \item \verb|void printTree(ostream &out = cout) const|
+        \item \verb|void makeEmpty()|
+        \item \verb|void insert(const Comparable &x)|
+        \item \verb|void insert(Comparable &&x)|
+        \item \verb|void remove(const Comparable &x)|
+    \end{itemize}
+\end{itemize}
+
+\section{remove 方法的实现}
+
+\subsection{方法简介}
+
+\verb|void remove(const Comparable &x)| 方法用于从二叉查找树中删除一个值为 \verb|x| 的节点。这个方法的实现非常重要，它需要处理多种情况以确保删除节点后树的结构仍然满足二叉查找树的性质。
+
+\subsection{实现细节}
+
+\begin{lstlisting}[language=C++, caption=remove 方法的实现]
+void remove(const Comparable &x, BinaryNode *&t) {
+    if (t == nullptr) {
+        return;
+    }
+    if (x < t->element) {
+        remove(x, t->left);
+    } else if (t->element < x) {
+        remove(x, t->right);
+    } else {
+        BinaryNode *oldNode = t;
+        if (t->left != nullptr && t->right != nullptr) {
+            t = removeMin(t->right);
+            t->right = oldNode->right;
+            t->left = oldNode->left;
+        } else {
+            t = (t->left != nullptr) ? t->left : t->right;
+        }
+        delete oldNode;
+    }
+}
+\end{lstlisting}
+
+\subsection{算法解释} 
+
+该方法采用递归的方式查找并删除节点，主要处理以下几种情况： 
+
+\begin{enumerate}
+    \item \textbf{节点不存在}：如果当前节点 \verb|t| 为 \verb|nullptr|，直接返回。
+    \item \textbf{待删除值小于当前节点值}：在左子树中继续递归查找。
+    \item \textbf{待删除值大于当前节点值}：在右子树中继续递归查找。
+    \item \textbf{找到待删除节点}：
+    \begin{enumerate}
+        \item \textbf{有两个子节点}：
+        \begin{itemize}
+            \item 调用 \verb|removeMin| 方法从右子树中找到最小节点。
+            \item 将当前节点 \verb|t| 替换为该最小节点。
+            \item 重新连接左右子树。
+        \end{itemize}
+        \item \textbf{有一个子节点或无子节点}：
+        \begin{itemize}
+            \item 将 \verb|t| 指向其非空子节点或 \verb|nullptr|。
+        \end{itemize}
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{关键函数}
+
+\paragraph{removeMin 函数}
+
+\begin{lstlisting}[language=C++, caption=removeMin 方法的实现]
+BinaryNode* removeMin(BinaryNode *&t) {
+    if (t == nullptr) {
+        return nullptr;
+    }
+    if (t->left != nullptr) {
+        return removeMin(t->left);
+    } else {
+        BinaryNode *oldNode = t;
+        t = t->right;
+        return oldNode;
+    }
+}
+\end{lstlisting}
+
+该函数用于找到并删除子树中的最小节点，返回该节点的指针。这在删除有两个子节点的节点时非常有用，用以找到替代节点。
+
+\subsection{实现总结}
+
+\begin{itemize}
+    \item \textbf{递归查找与删除}：通过递归方式高效地查找到待删除的节点。
+    \item \textbf{替换策略}：当待删除节点有两个子节点时，选择右子树中的最小节点进行替换，保证了二叉查找树的性质不变。
+    \item \textbf{指针的巧妙运用}：通过操作指针，避免了不必要的数据复制，提升了算法的效率。
+\end{itemize}
+
+\subsection{注意事项}
+
+\begin{itemize}
+    \item \textbf{内存管理}：在删除节点后，务必释放旧节点的内存，防止内存泄漏。
+    \item \textbf{边界情况}：必须处理好节点不存在、只有一个子节点或没有子节点的情况，确保程序的健壮性。
+\end{itemize}
+
+\section{方法测试}
+
+为了验证各个方法的正确性，特别是 \verb|remove| 方法，我们编写了测试代码，对二叉查找树进行了各种操作的测试。测试过程中也使用了 \verb|valgrind| 工具来检测内存泄漏，结果显示没有内存泄漏问题，\verb|remove| 方法实现正确。
+
+\subsection{测试代码}
+
+测试代码如下：
+
+\begin{lstlisting}[language=C++, caption=测试代码]
+std::cout << "树的内容：" << std::endl;
+bst.printTree();
+std::cout << std::endl;
+
+// 测试查找最小值和最大值
+try {
+    std::cout << "最小值: " << bst.findMin() << std::endl;
+    std::cout << "最大值: " << bst.findMax() << std::endl;
+} catch (const UnderflowException &e) {
+    std::cout << "树为空，无法查找最小值或最大值。" << std::endl;
+}
+
+// 测试包含
+std::cout << "树包含10: " << bst.contains(10) << std::endl;
+std::cout << "树包含20: " << bst.contains(20) << std::endl;
+
+// 测试删除
+std::cout << "删除15后树的内容：" << std::endl;
+bst.remove(15);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除10后树的内容：" << std::endl;
+bst.remove(10);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除5后树的内容：" << std::endl;
+bst.remove(5);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除3后树的内容：" << std::endl;
+bst.remove(3);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除7后树的内容：" << std::endl;
+bst.remove(7);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除12后树的内容：" << std::endl;
+bst.remove(12);
+bst.printTree();
+std::cout << std::endl;
+
+std::cout << "删除18后树的内容：" << std::endl;
+bst.remove(18);
+bst.printTree();
+std::cout << std::endl;
+\end{lstlisting}
+
+\subsection{测试结果}
+
+运行程序后，终端输出如下：
+
+\begin{lstlisting}[language={}, caption=程序输出]
+树的内容：
+│       ┌──18
+│   ┌──15
+│   │   └──12
+10
+    │   ┌──7
+    └──5
+        └──3
+
+最小值: 3
+最大值: 18
+树包含10: 1
+树包含20: 0
+删除15后树的内容：
+│   ┌──18
+│   │   └──12
+10
+    │   ┌──7
+    └──5
+        └──3
+
+删除10后树的内容：
+│   ┌──18
+12
+    │   ┌──7
+    └──5
+        └──3
+
+删除5后树的内容：
+│   ┌──18
+12
+    └──7
+        └──3
+
+删除3后树的内容：
+│   ┌──18
+12
+    └──7
+
+删除7后树的内容：
+│   ┌──18
+12
+
+删除12后树的内容：
+18
+
+删除18后树的内容：
+Empty tree
+\end{lstlisting}
+
+\subsection{内存泄漏检测}
+
+使用 \verb|valgrind| 工具测试内存泄漏，命令和输出如下：
+
+\begin{lstlisting}[language=bash, caption=Valgrind 输出]
+valgrind --leak-check=full ./main
+==14976== Memcheck, a memory error detector
+==14976== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+==14976== Using Valgrind-3.23.0 and LibVEX; rerun with -h for copyright info
+==14976== Command: ./main
+==14976== 
+[程序输出内容，详见上节]
+==14976== 
+==14976== HEAP SUMMARY:
+==14976==     in use at exit: 0 bytes in 0 blocks
+==14976==   total heap usage: 9 allocs, 9 frees, 74,920 bytes allocated
+==14976== 
+==14976== All heap blocks were freed -- no leaks are possible
+==14976== 
+==14976== For lists of detected and suppressed errors, rerun with: -s
+==14976== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+\end{lstlisting}
+
+结果显示所有堆内存块都已释放，没有内存泄漏问题，证明 \verb|remove| 方法实现正确。
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
