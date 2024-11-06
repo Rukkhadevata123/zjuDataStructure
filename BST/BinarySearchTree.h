@@ -1,3 +1,4 @@
+#include <cstddef>
 class UnderflowException {
 };
 
@@ -96,6 +97,10 @@ public:
         remove(x, root);
     }
 
+    void yet_another_remove(const Comparable &x) {
+        yet_another_remove(x, root);
+    }
+
 private:
     struct BinaryNode {
         Comparable element;
@@ -159,7 +164,63 @@ private:
         }
     }
 
-    // void transplant()
+    BinaryNode* findNode(const Comparable &x, BinaryNode *t) const {
+        if (t == nullptr) {
+            return nullptr;
+        } else if (x < t->element) {
+            return findNode(x, t->left);
+        } else if (t->element < x) {
+            return findNode(x, t->right);
+        } else {
+            return t;
+        }
+    }
+
+    BinaryNode* findParent(BinaryNode *child, BinaryNode *t) const {
+        if (t == nullptr || t == child) {
+            return nullptr;
+        }
+        if ((t->left != nullptr && t->left == child) || (t->right != nullptr && t->right == child)) {
+            return t;
+        }
+        if (child->element < t->element) {
+            return findParent(child, t->left);
+        } else {
+            return findParent(child, t->right);
+        }
+    }
+
+    void transplant(BinaryNode *u, BinaryNode *v) {
+        BinaryNode *parent = findParent(u, root);
+        if (parent == nullptr) {
+            root = v;
+        } else if (parent->left == u) {
+            parent->left = v;
+        } else {
+            parent->right = v;
+        }
+    }
+
+    void yet_another_remove(const Comparable &x, BinaryNode *&t) {
+        BinaryNode *z = findNode(x, t);
+        if (z == nullptr) {
+            return;
+        }
+        if (z->left == nullptr) {
+            transplant(z, z->right);
+        } else if (z->right == nullptr) {
+            transplant(z, z->left);
+        } else {
+            BinaryNode *y = findMin(z->right);
+            if (findParent(y, z) != z) {
+                transplant(y, y->right);
+                y->right = z->right;
+            }
+            transplant(z, y);
+            y->left = z->left;
+        }
+        delete z;
+    }
 
     BinaryNode *findMin(BinaryNode *t) const {
         if (t == nullptr) {

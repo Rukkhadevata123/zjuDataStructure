@@ -31,37 +31,37 @@ int main() {
 
     // 测试删除
     std::cout << "删除15后树的内容：" << std::endl;
-    bst.remove(15);
+    bst.yet_another_remove(15);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除10后树的内容：" << std::endl;
-    bst.remove(10);
+    bst.yet_another_remove(10);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除5后树的内容：" << std::endl;
-    bst.remove(5);
+    bst.yet_another_remove(5);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除3后树的内容：" << std::endl;
-    bst.remove(3);
+    bst.yet_another_remove(3);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除7后树的内容：" << std::endl;
-    bst.remove(7);
+    bst.yet_another_remove(7);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除12后树的内容：" << std::endl;
-    bst.remove(12);
+    bst.yet_another_remove(12);
     bst.printTree();
     std::cout << std::endl;
 
     std::cout << "删除18后树的内容：" << std::endl;
-    bst.remove(18);
+    bst.yet_another_remove(18);
     bst.printTree();
     std::cout << std::endl;
 
