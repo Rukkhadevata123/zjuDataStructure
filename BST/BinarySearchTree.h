@@ -97,26 +97,85 @@ public:
         remove(x, root);
     }
 
+    void another_remove(const Comparable &x) {
+        another_remove(x, root);
+    }
+
     void yet_another_remove(const Comparable &x) {
         yet_another_remove(x, root);
     }
 
-private:
+protected:
     struct BinaryNode {
         Comparable element;
         BinaryNode *left;
         BinaryNode *right;
+        int height;
 
-        BinaryNode(const Comparable &theElement, BinaryNode *lt, BinaryNode *rt): element{theElement}, left{lt},
-            right{rt} {
+        BinaryNode(const Comparable &theElement, BinaryNode *lt, BinaryNode *rt, int h = 0)
+            : element{theElement}, left{lt}, right{rt}, height{h} {
         }
 
-        BinaryNode(Comparable &&theElement, BinaryNode *lt, BinaryNode *rt): element{std::move(theElement)}, left{lt},
-                                                                             right{rt} {
+        BinaryNode(Comparable &&theElement, BinaryNode *lt, BinaryNode *rt, int h = 0)
+            : element{std::move(theElement)}, left{lt}, right{rt}, height{h} {
         }
     };
 
     BinaryNode *root;
+
+    int height(BinaryNode *t) const {
+        return t == nullptr ? 0 : t->height;
+    }
+
+    void rotateWithLeftChild(BinaryNode *&k2) {
+        BinaryNode *k1 = k2->left;
+        k2->left = k1->right;
+        k1->right = k2;
+        k2->height = std::max(height(k2->left), height(k2->right)) + 1;
+        k1->height = std::max(height(k1->left), k2->height) + 1;
+        k2 = k1;
+    }
+
+    void rotateWithRightChild(BinaryNode *&k1) {
+        BinaryNode *k2 = k1->right;
+        k1->right = k2->left;
+        k2->left = k1;
+        k1->height = std::max(height(k1->left), height(k1->right)) + 1;
+        k2->height = std::max(height(k2->right), k1->height) + 1;
+        k1 = k2;
+    }
+
+    void doubleWithLeftChild(BinaryNode *&k3) {
+        rotateWithRightChild(k3->left);
+        rotateWithLeftChild(k3);
+    }
+
+    void doubleWithRightChild(BinaryNode *&k1) {
+        rotateWithLeftChild(k1->right);
+        rotateWithRightChild(k1);
+    }
+
+    void balance(BinaryNode *&t) {
+        if (t == nullptr) {
+            return;
+        }
+
+        if (height(t->left) - height(t->right) > 1) {
+            if (height(t->left->left) >= height(t->left->right)) {
+                rotateWithLeftChild(t);
+            } else {
+                doubleWithLeftChild(t);
+            }
+        } else if (height(t->right) - height(t->left) > 1) {
+            if (height(t->right->right) >= height(t->right->left)) {
+                rotateWithRightChild(t);
+            } else {
+                doubleWithRightChild(t);
+            }
+        }
+
+        t->height = std::max(height(t->left), height(t->right)) + 1;
+    }
 
     void insert(const Comparable &x, BinaryNode * &t) {
         if (t == nullptr) {
@@ -128,6 +187,11 @@ private:
         } else {
             ; // Duplicate; do nothing
         }
+    }
+
+    void remove(const Comparable &x, BinaryNode *&t) {
+        another_remove(x, t);
+        balance(t);
     }
 
     BinaryNode* removeMin(BinaryNode *&t) {
@@ -143,7 +207,7 @@ private:
         }
     }
     
-    void remove(const Comparable &x, BinaryNode *&t) {
+    void another_remove(const Comparable &x, BinaryNode *&t) {
         if (t == nullptr) {
             return;
         }

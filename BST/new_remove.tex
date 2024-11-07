@@ -1,0 +1,109 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1.64723cm} % 调整 topmargin
+\setlength{\headheight}{12.64723pt} % 设置 headheight
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{listingsutf8}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+\usepackage{fontspec}
+\setmonofont{Noto Sans Mono}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em, inputencoding=utf8, showstringspaces=false, showspaces=false
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{黎学圣, 3230102179}
+\chead{数据结构与算法第六次作业}
+\rhead{\today}
+
+\section{添加了balance方法的remove函数}
+
+在本节中，我们介绍了添加了平衡方法的 `remove` 函数。该函数的实现基于 `another\_remove` 方法，并在删除节点后对树进行平衡操作，以确保树保持 AVL 树的性质。
+
+实际上，这里的删除逻辑与之前的 `remove` 函数相同，只是在删除节点后，我们需要对树进行平衡操作。这里我们介绍了 `balance` 方法，用于对树进行平衡操作。
+
+\subsection{remove函数实现原理}
+
+`remove` 函数的实现原理如下：
+
+1. 首先，调用 `another\_remove` 方法删除指定的节点。
+2. 然后，调用 `balance` 方法对树进行平衡操作。
+
+\subsection{another\_remove函数}
+
+`another\_remove` 函数用于从树中删除指定的节点。其实现步骤如下：
+
+\begin{enumerate}
+    \item \textbf{节点不存在}：如果当前节点 \verb|t| 为 \verb|nullptr|，直接返回。
+    \item \textbf{待删除值小于当前节点值}：在左子树中继续递归查找。
+    \item \textbf{待删除值大于当前节点值}：在右子树中继续递归查找。
+    \item \textbf{找到待删除节点}：
+    \begin{enumerate}
+        \item \textbf{有两个子节点}：
+        \begin{itemize}
+            \item 调用 \verb|removeMin| 方法从右子树中找到最小节点。
+            \item 将当前节点 \verb|t| 替换为该最小节点。
+            \item 重新连接左右子树。
+        \end{itemize}
+        \item \textbf{有一个子节点或无子节点}：
+        \begin{itemize}
+            \item 将 \verb|t| 指向其非空子节点或 \verb|nullptr|。
+        \end{itemize}
+    \end{enumerate}
+\end{enumerate}
+
+\subsection{balance函数}
+
+`balance` 函数用于对树进行平衡操作。其实现步骤如下：
+
+1. 如果当前节点为空，则直接返回。
+2. 如果左子树的高度比右子树高出1以上，则进行左旋转或双旋转操作：
+   \begin{itemize}
+       \item 如果左子树的左子树高度大于等于左子树的右子树高度，则进行单次左旋转。
+       \item 否则，进行双旋转（先右旋转左子树，再左旋转当前节点）。
+   \end{itemize}
+3. 如果右子树的高度比左子树高出1以上，则进行右旋转或双旋转操作：
+   \begin{itemize}
+       \item 如果右子树的右子树高度大于等于右子树的左子树高度，则进行单次右旋转。
+       \item 否则，进行双旋转（先左旋转右子树，再右旋转当前节点）。
+   \end{itemize}
+4. 更新当前节点的高度。
+
+通过上述步骤，`remove` 函数在删除节点后能够保持树的平衡，确保树的高度保持在对数级别，从而提高查找、插入和删除操作的效率。
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
