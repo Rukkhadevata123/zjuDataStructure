@@ -16,6 +16,7 @@ bool ExpressionEvaluator::hasInvalidCharacters(const std::string& expression) {
 bool ExpressionEvaluator::areParenthesesBalanced(const std::string& expression) {
     std::stack<char> stack;
 
+    // 使用栈来检查括号是否匹配
     for (char c : expression) {
         if (c == '(') {
             stack.push(c);
@@ -267,7 +268,7 @@ std::string ExpressionEvaluator::preprocessExpression(const std::string& express
                         ++i;
                     }
 
-                    // 检查下一个运算符的优先级
+                    // 检查下一个运算符的优先级，实际上，我们只需要检查更高级别的运算符e即可，这里是为了表达式的统一，*/e都处理了
                     if (i < result_3.size()) {
                         if (result_3[i] == ')' || result_3[i] == '+' || result_3[i] == '-') {
                             tempResult += ")";

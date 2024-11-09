@@ -1,6 +1,6 @@
 \documentclass[UTF8]{ctexart}
 \usepackage{geometry, CJKutf8}
-\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\geometry{margin=2cm, vmargin={0pt,1cm}} % 调整页面边距
 \setlength{\topmargin}{-1.64723cm} % 调整 topmargin
 \setlength{\headheight}{12.64723pt} % 设置 headheight
 \setlength{\paperheight}{29.7cm}
@@ -40,19 +40,617 @@
 
 \begin{document}
 
+\sloppy % 或者使用 \raggedright
+
 \pagestyle{fancy}
 \fancyhead{}
 \lhead{黎学圣, 3230102179}
 \chead{数据结构与算法项目作业}
 \rhead{Oct.30th, 2024}
 
-\section{}
+\section{项目结构}
 
+\begin{itemize}
 
+  \item \texttt{main.cpp}：主程序入口
+  \item \texttt{expression\_evaluator.h}：表达式求值器的定义
+  \item \texttt{expression\_evaluator.cpp}：表达式求值器的实现
+  \item \texttt{Makefile}：运行项目
+  \item \texttt{test.py}：表达式求值对照
+  \item \texttt{compare\_results.sh}：对照测试脚本
+
+\end{itemize}
+
+\section{Makefile的使用}
+
+\texttt{Makefile} 文件用于管理项目的构建和运行。以下是各个目标的说明：
+
+\begin{itemize}
+  \item \texttt{all}：默认目标，编译生成可执行文件 \texttt{main}。
+  \item \texttt{report}：使用 \texttt{xelatex} 编译 \texttt{report.tex} 生成报告。
+  \item \texttt{run\_cpp}：运行生成的 C++ 可执行文件，并将输出重定向到 \texttt{cpp\_output.txt}。
+  \item \texttt{valgrind\_cpp}：使用 \texttt{valgrind} 检查 C++ 程序的内存泄漏。
+  \item \texttt{run\_python}：运行 Python 对照组脚本 \texttt{test.py}，并将输出重定向到 \texttt{python\_output.txt}。
+  \item \texttt{test}：依次运行 \texttt{run\_cpp} 和 \texttt{run\_python}，然后调用 \texttt{compare\_results.sh} 脚本对比结果。
+  \item \texttt{clean}：清理生成的文件，包括可执行文件、输出文件和报告生成的中间文件。
+\end{itemize}
+
+使用方法示例：
+
+\begin{verbatim}
+# 编译生成可执行文件
+make
+
+# 生成报告
+make report
+
+# 运行 C++ 程序
+make run_cpp
+
+# 运行 Python 脚本
+make run_python
+
+# 对比 C++ 和 Python 的结果
+make test
+
+# 清理生成的文件
+make clean
+\end{verbatim}
+
+\section{函数清单}
+
+\texttt{ExpressionEvaluator} 类提供了一系列静态函数，用于表达式的预处理、解析和求值。以下是各个函数的说明：
+
+\begin{itemize}
+  \item \texttt{static bool hasInvalidCharacters(const std::string\& expression)}：检测表达式中是否包含非法字符。
+  \item \texttt{static bool areParenthesesBalanced(const std::string\& expression)}：检测表达式中的括号是否匹配。
+  \item \texttt{static bool hasExtraDecimalPoint(const std::string\& expression)}：检测表达式中是否包含多余的小数点。
+  \item \texttt{static bool hasInvalidOperatorSequence(const std::string\& expression)}：检测表达式中是否包含连续的运算符。
+  \item \texttt{static std::string removeSpaces(const std::string\& expression)}：删除表达式中的空格。
+  \item \texttt{static std::string addParentheses(const std::string\& expression)}：为表达式添加括号。
+  \item \texttt{static size\_t findRightOperandEnd(const std::string\& expression, size\_t start)}：寻找表达式中右操作数的结束位置。
+  \item \texttt{static std::string preprocessExpression(const std::string\& expression)}：预处理表达式。
+  \item \texttt{static std::vector<std::string> tokenizeExpression(const std::string\& expression)}：将表达式拆分为标记。
+  \item \texttt{static std::string infixToPostfix(const std::string\& expression)}：将中缀表达式转换为后缀表达式。
+  \item \texttt{static double evaluatePostfix(const std::string\& postfixExpression)}：计算后缀表达式的值。
+\end{itemize}
+
+此外，类中还包含一些私有的辅助函数：
+
+\begin{itemize}
+  \item \texttt{static int getPrecedence(char op)}：获取运算符的优先级。
+  \item \texttt{static bool isOperator(char c)}：判断字符是否为运算符。
+  \item \texttt{static double applyOperation(double a, double b, char op)}：应用运算符对两个操作数进行计算。
+\end{itemize}
+
+\section{重要方法及思路说明}
+
+一些小方法会在代码中进行注释
+
+我们在进行表达式求值之前，首先对表达式进行多重预处理，之后的转换后缀表达式就更方便了。
+
+\subsection{非法字符检测}
+
+我们先直接排除非法字符，这样可以减少后续的处理。
+
+检查是否包含非法字符（仅保留数字、运算符、小数点和括号）
+
+\texttt{if (!std::isspace(c) \&\& !std::isdigit(c) \&\& c != '+' \&\& c != '-' \&\& c != '*' \&\& c != '/' \&\& c != '(' \&\& c != ')' \&\& c != 'e' \&\& c != '.')}
+
+\subsection{括号匹配检测}
+
+使用栈的思想，遇到左括号入栈，遇到右括号出栈，最后栈为空则括号匹配
+
+\subsection{多余小数点检测}
+
+为了检测表达式中是否包含多余的小数点，我们定义了 \texttt{hasExtraDecimalPoint} 函数。该函数遍历表达式中的每个字符，并根据以下规则进行检测：
+
+\begin{itemize}
+  \item 如果字符是数字，则标记当前处于一个数字部分。
+  \item 如果字符是小数点，则检查当前数字部分是否已经包含小数点。如果是，则返回 \texttt{true}，表示存在多余的小数点。
+  \item 如果遇到其他字符，则结束当前数字部分的检查，重置标记。
+\end{itemize}
+
+以下是 \texttt{hasExtraDecimalPoint} 函数的实现：
+
+\begin{lstlisting}[language=C++, breaklines=true]
+bool ExpressionEvaluator::hasExtraDecimalPoint(const std::string& expression) {
+    bool inNumber = false;  // 是否在一个数字部分中
+    bool hasDecimalPoint = false;  // 当前数字部分是否已有小数点
+
+    for (char c : expression) {
+        if (std::isdigit(c)) {
+            inNumber = true;  // 开始一个新的数字部分
+        } else if (c == '.') {
+            if (hasDecimalPoint) {
+                return true;  // 如果已经有小数点，则多余
+            }
+            hasDecimalPoint = true;  // 标记当前数字部分有小数点
+        } else {
+            // 遇到其他字符，结束当前数字部分的检查
+            inNumber = false;
+            hasDecimalPoint = false;
+        }
+    }
+
+    return false;  // 未检测到多余小数点
+}
+\end{lstlisting}
+
+该方法确保表达式中的每个数字部分最多只包含一个小数点，从而保证表达式的合法性。
+
+\subsection{移出空格等空白字符}
+
+是\texttt{removeSpaces}函数，直接遍历表达式，将空格等空白字符移出
+
+\subsection{添加括号}
+
+为了方便后续的处理，我们在表达式的两端添加括号。这样可以确保表达式的正确性，同时也方便我们进行后续的处理，
+不需要考虑边界情况。
+
+\subsection{非法连续运算符检测}
+
+这是比较无脑的方法，但能够有效排除非法情况。
+
+我们先列了一张连续运算符的表，然后遍历表达式，如果遇到连续运算符，就返回非法。
+
+\begin{table}[H]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|c|c|c}
+    & + & - & * & / & ( & ) & e & . & d \\
+    \hline
+    + & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 \\
+    - & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 \\
+    * & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 \\
+    / & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 \\
+    ( & 1 & 1 & 0 & 0 & 1 & 0 & 1 & 1 & 1 \\
+    ) & 1 & 1 & 1 & 1 & 0 & 1 & 1 & 0 & 0 \\
+    e & 0 & 1 & 0 & 0 & 1 & 0 & 0 & 1 & 1 \\
+    . & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1 \\
+    d & 1 & 1 & 1 & 1 & 0 & 1 & 1 & 1 & 1 \\
+\end{tabular}
+\caption{连续运算符检测表}
+\end{table}
+
+其中我们把 \texttt{e} 视为运算符，因为它是科学计数法的一部分。
+表格中的 \texttt{d} 表示数字。
+比如我们允许连续的加法和减法运算，后续会被预处理，但不允许 \texttt{+*} 或 \texttt{)()} 这种情况。
+
+我们直接列举 
+\begin{lstlisting}
+    std::vector<std::string> invalidSequence = {
+        "+*", "+/", "+)",
+        "-*", "-/", "-)",
+        "**", "*/", "*)",
+        "/*", "//", "/)",
+        "e*", "e/", "ee", "e)", "e+",
+        "(*", "(/", "()",
+        ")(", ").",
+        ".+", ".-", ".*", "./", ".e",
+        ".)", ".(", "..",
+        "0(", "1(", "2(", "3(", "4(", "5(", "6(", "7(", "8(", "9(",
+        ")0", ")1", ")2", ")3", ")4", ")5", ")6", ")7", ")8", ")9",
+    };
+\end{lstlisting}
+
+\subsection{预处理表达式}
+
+为最复杂但重要的一步，我们分四步进行预处理：
+
+\subsubsection{第一步：移除空白字符，添加括号并检测合法性}
+
+\begin{lstlisting}[language=c++, breaklines=true]
+    std::string cleanedExpression = ExpressionEvaluator::addParentheses(expression);
+
+    // 检查合法性
+    if (!hasInvalidCharacters(cleanedExpression)) {
+        throw std::invalid_argument("表达式包含非法字符");
+    }
+    if (!areParenthesesBalanced(cleanedExpression)) {
+        throw std::invalid_argument("表达式中的括号不平衡");
+    }
+    if (hasExtraDecimalPoint(cleanedExpression)) {
+        throw std::invalid_argument("表达式包含多余的小数点");
+    }
+    if (hasInvalidOperatorSequence(cleanedExpression)) {
+        throw std::invalid_argument("表达式包含无效的运算符序列");
+    }
+\end{lstlisting}
+
+\subsubsection{第二步：处理连续加减运算符}
+
+目的是将连续的加减运算符转换为单个运算符，这样可以简化后续的处理，比如+-简化成-，--简化成+。
+
+在表达式中，连续的加减运算符需要进行特殊处理。我们通过遍历表达式中的每个字符，检测连续的加减运算符，并根据其数量进行处理。以下是具体的实现步骤：
+
+1. 初始化变量 \texttt{signCount} 用于记录连续减号的数量，\texttt{inConsecutiveSigns} 用于标记是否处于连续加减运算符的检测中。
+2. 遍历表达式中的每个字符：
+   \begin{itemize}
+     \item 如果字符是加号或减号：
+       \begin{itemize}
+         \item 如果当前不在连续加减运算符的检测中，开始新的检测，并重置 \texttt{signCount}。
+         \item 如果字符是减号，增加 \texttt{signCount}。
+       \end{itemize}
+     \item 如果字符不是加号或减号：
+       \begin{itemize}
+         \item 如果当前在连续加减运算符的检测中，根据 \texttt{signCount} 的奇偶性决定最终的运算符，并结束检测。
+         \item 将当前字符添加到结果字符串中。
+       \end{itemize}
+   \end{itemize}
+3. 处理表达式末尾的连续加减运算符。
+
+以下是处理连续加减运算符的代码实现：
+
+\begin{lstlisting}[language=C++, breaklines=true]
+std::string result_1;
+int signCount = 0;
+bool inConsecutiveSigns = false;
+
+for (size_t i = 0; i < cleanedExpression.size(); ++i) {
+    char c = cleanedExpression[i];
+
+    if (c == '+' || c == '-') {
+        if (!inConsecutiveSigns) {
+            inConsecutiveSigns = true;
+            signCount = 0;
+        }
+        signCount += (c == '-') ? 1 : 0;
+    } else {
+        if (inConsecutiveSigns) {
+            result_1 += (signCount % 2 == 0) ? '+' : '-';
+            inConsecutiveSigns = false;
+            signCount = 0;
+        }
+        result_1 += c;
+    }
+}
+
+// 遇到结尾的连续符号
+if (inConsecutiveSigns) {
+    result_1 += (signCount % 2 == 0) ? '+' : '-';
+}
+\end{lstlisting}
+
+\subsubsection{第三步：处理省略的运算符操作数}
+
+在表达式中，有时会省略运算符的操作数，例如 \texttt{e} 后面没有数字，或者小数点前面没有数字。为了处理这些情况，我们需要对表达式进行进一步的预处理。以下是具体的实现步骤：
+
+基于运算符合法性表格进行分步处理。
+
+1. 初始化一个标记 \texttt{modified}，用于记录当前扫描是否对表达式进行了修改。
+2. 使用一个循环遍历表达式中的每个字符，并根据以下规则进行处理：
+   \begin{itemize}
+     \item 如果当前字符是运算符（如 \texttt{+}、\texttt{-}、\texttt{*}、\texttt{/}、\texttt{(}），检查下一个字符：
+       \begin{itemize}
+         \item 如果下一个字符是 \texttt{e}，则在运算符后面添加 \texttt{1e}。
+         \item 如果下一个字符是小数点，则在运算符后面添加 \texttt{0.}。
+         \item 如果当前字符是 \texttt{*} 或 \texttt{/}，且下一个字符是 \texttt{+}，则跳过 \texttt{+}。
+         \item 如果当前字符是 \texttt{(}，且下一个字符是 \texttt{+} 或 \texttt{-}，则在 \texttt{(} 后面添加 \texttt{0}。
+       \end{itemize}
+     \item 如果当前字符是 \texttt{e}，且下一个字符是小数点，则在 \texttt{e} 后面添加 \texttt{0.}。
+   \end{itemize}
+3. 如果在一次扫描中对表达式进行了修改，则继续进行下一次扫描，直到表达式在一次扫描中没有任何变化为止。
+
+代码实现可直接查看 \texttt{expression\_evaluator.cpp} 源代码。
+
+这种方法类似于冒泡排序的优化，通过在每次扫描中记录是否进行了修改，如果没有修改则停止循环，从而提高了处理效率。
+
+\subsubsection{第四步：处理负号}
+
+这一步单独处理，是因为负号直接加 0 会导致优先级出错，比如 \texttt{*-2} 会被处理成 \texttt{*0-2}，这是不对的。
+
+为了正确处理负号，我们需要在负号前添加括号，并在括号内添加 0，从而保证运算的优先级。例如，\texttt{*-2} 应该被处理成 \texttt{*(0-2)}。类似地，\texttt{7*-(2.5+3)} 需要处理成 \texttt{7*(-(2.5+3))}，\texttt{7*-3e-6*2} 需要处理成 \texttt{7*(0-3e(0-6))*2}。
+
+具体的实现步骤如下：
+
+1. 初始化一个变量 \texttt{previousResult} 用于保存当前结果，以便检查是否有变更。
+
+2. 使用一个循环遍历表达式中的每个字符，并根据以下规则进行处理：
+   \begin{itemize}
+     \item 如果当前字符是 \texttt{*} 或 \texttt{/}，且下一个字符是 \texttt{-}，则在运算符后面添加 \texttt{(0-}，并处理负号后的数字或括号。
+     \item 如果当前字符是 \texttt{e}，且下一个字符是 \texttt{-}，则在 \texttt{e} 后面添加 \texttt{(0-}，并处理负号后的数字或括号。因为e的优先级最高，处理方法比乘除简单些。
+     \item 其他情况下，直接将当前字符添加到结果字符串中。
+   \end{itemize}
+3. 如果在一次扫描中对表达式进行了修改，则继续进行下一次扫描，直到表达式在一次扫描中没有任何变化为止。
+
+为了处理负号后的数字或括号，我们定义了辅助方法 \texttt{findRightOperandEnd}，用于寻找右操作数的结束位置。该方法的实现步骤如下：
+
+1. 初始化一个变量 \texttt{i} 为起始位置。
+
+2. 如果当前字符是运算符，且其后接 \texttt{(}，则找到对应的闭括号位置。
+
+3. 如果当前字符是运算符，且其后接另一个运算符，则递归调用 \texttt{findRightOperandEnd} 方法。
+
+4. 遍历操作数，可能包含小数点，直到找到右操作数的结束位置。
+
+以下是 \texttt{findRightOperandEnd} 方法的代码实现：
+
+\begin{lstlisting}[language=C++, breaklines=true]
+size_t ExpressionEvaluator::findRightOperandEnd(const std::string& expression, size_t start) {
+    size_t i = start;
+
+    // 检查是否为运算符，且其后接 "("，找到闭括号位置
+    if (isOperator(expression[i])) {
+        if (expression[i + 1] == '(') {
+            int openParens = 1;
+            i += 2;
+            while (i < expression.size() && openParens > 0) {
+                if (expression[i] == '(') openParens++;
+                else if (expression[i] == ')') openParens--;
+                i++;
+            }
+            return i;
+        } else if (isOperator(expression[i + 1])) {
+            return findRightOperandEnd(expression, i + 1);
+        }
+        i++;  // 跳过以检查后面的数
+    }
+
+    // 遍历操作数，可能包含小数点 
+    while (i < expression.size() && (std::isdigit(expression[i]) || expression[i] == '.')) {
+        i++;
+    }
+
+    return i;
+}
+\end{lstlisting}
+
+通过上述方法，我们可以正确处理表达式中的负号，确保运算的优先级。
+
+具体的代码实现请参见 \texttt{expression\_evaluator.cpp} 文件中的相关部分。
+
+\subsection{将中缀表达所进行分组}
+
+目的是简化转换的处理，将double数值，运算符，括号分开，放到一个vector中。
+
+\subsection{中缀表达式转后缀表达式}
+
+在表达式求值过程中，将中缀表达式转换为后缀表达式（逆波兰表达式）是一个重要步骤。后缀表达式的优点在于不需要括号来表示操作符的优先级，计算机可以更容易地进行求值。
+
+以下是将中缀表达式转换为后缀表达式的具体步骤：
+
+1. 初始化一个栈用于存储操作符和括号，以及一个字符串用于存储后缀表达式。
+2. 遍历中缀表达式中的每个标记（token）：
+   \begin{itemize}
+     \item 如果标记是数值，直接添加到后缀表达式中。
+     \item 如果标记是左括号，直接入栈。
+     \item 如果标记是右括号，弹出栈顶的操作符并添加到后缀表达式中，直到遇到左括号。
+     \item 如果标记是操作符，弹出栈顶的操作符并添加到后缀表达式中，直到栈顶的操作符优先级低于当前操作符，然后将当前操作符入栈。
+   \end{itemize}
+3. 遍历结束后，将栈中剩余的所有操作符弹出并添加到后缀表达式中。
+
+以下是 \texttt{infixToPostfix} 函数的代码实现：
+
+\begin{lstlisting}[language=C++, breaklines=true]
+std::string ExpressionEvaluator::infixToPostfix(const std::string& expression) {
+    std::vector<std::string> tokens = tokenizeExpression(expression);
+    std::stack<std::string> stack;
+    std::string postfix;
+
+    for (const std::string& token : tokens) {
+        // 数值直接输出到后缀表达式
+        if (std::isdigit(token[0]) || (token.size() > 1 && (std::isdigit(token[1]) || token[0] == '.'))) {
+            postfix += token + " ";
+        }
+        // 左括号直接入栈
+        else if (token == "(") {
+            stack.push(token);
+        }
+        // 遇到右括号，弹出直到左括号
+        else if (token == ")") {
+            while (!stack.empty() && stack.top() != "(") {
+                postfix += stack.top() + " ";
+                stack.pop();
+            }
+            if (!stack.empty()) stack.pop(); // 弹出左括号
+        }
+        // 遇到运算符
+        else if (isOperator(token[0])) {
+            while (!stack.empty() && getPrecedence(stack.top()[0]) >= getPrecedence(token[0])) {
+                postfix += stack.top() + " ";
+                stack.pop();
+            }
+            stack.push(token);
+        }
+    }
+
+    // 将栈中剩余的所有运算符弹出到后缀表达式
+    while (!stack.empty()) {
+        postfix += stack.top() + " ";
+        stack.pop();
+    }
+
+    return postfix;
+}
+\end{lstlisting}
+
+通过上述步骤，我们可以将中缀表达式转换为后缀表达式，从而简化表达式的求值过程。
+
+\subsection{计算后缀表达式的值}
+
+在将中缀表达式转换为后缀表达式后，我们需要计算后缀表达式的值。计算后缀表达式的过程如下：
+
+1. 初始化一个栈用于存储操作数。
+2. 遍历后缀表达式中的每个标记（token）：
+   \begin{itemize}
+     \item 如果标记是数值，将其转换为双精度浮点数并压入栈中。
+     \item 如果标记是操作符，从栈中弹出两个操作数，执行相应的操作，并将结果压入栈中。
+   \end{itemize}
+3. 遍历结束后，栈中应只剩下一个元素，即后缀表达式的计算结果。
+
+以下是 \texttt{evaluatePostfix} 函数的代码实现：
+
+\begin{lstlisting}[language=C++, breaklines=true]
+double ExpressionEvaluator::evaluatePostfix(const std::string& postfixExpression) {
+    std::istringstream tokens(postfixExpression);
+    std::stack<double> stack;
+    std::string token;
+
+    while (tokens >> token) {
+        // 判断是否为数字
+        if (std::isdigit(token[0]) || (token.size() > 1 && token[0] == '-')) {
+            stack.push(std::stod(token));
+        } 
+        // 判断是否为运算符
+        else if (isOperator(token[0])) {
+            if (stack.size() < 2) {
+                throw std::invalid_argument("Invalid postfix expression");
+            }
+            double right = stack.top(); stack.pop();
+            double left = stack.top(); stack.pop();
+
+            // 使用 applyOperation 执行对应操作
+            double result = applyOperation(left, right, token[0]);
+            stack.push(result);
+        } else {
+            throw std::invalid_argument("Unknown token in postfix expression: " + token);
+        }
+    }
+
+    if (stack.size() != 1) {
+        throw std::invalid_argument("Invalid postfix expression");
+    }
+
+    return stack.top();
+}
+\end{lstlisting}
+
+通过上述步骤，我们可以计算后缀表达式的值。具体的实现步骤如下：
+
+1. 使用 \texttt{std::istringstream} 将后缀表达式分割为标记。
+2. 遍历每个标记：
+   \begin{itemize}
+     \item 如果标记是数值，使用 \texttt{std::stod} 将其转换为双精度浮点数，并压入栈中。
+     \item 如果标记是操作符，从栈中弹出两个操作数，使用 \texttt{applyOperation} 执行相应的操作，并将结果压入栈中。
+     \item 如果标记既不是数值也不是操作符，抛出异常。
+   \end{itemize}
+3. 遍历结束后，检查栈中是否只剩下一个元素。如果是，则返回该元素作为计算结果；否则，抛出异常。
+
+通过这种方法，我们可以有效地计算后缀表达式的值，从而完成表达式求值的过程。
+
+\subsection{进行测试}
+
+我们在 \texttt{test.py} 中编写了一系列测试用例，用于对照 C++ 程序的输出结果。
+
+进行测试的表达式示例如下：
+
+\begin{lstlisting}[language=Python, breaklines=true]
+    test_expressions = [
+        "3.5 + 4.7e2 * +-.123 + (2 - -8) * 3",                
+        "-3.5e-2 + 4 * -+-(2.5 + 5.5)",                       
+        "+3.5e2 + +4.7e-2 * --5.5 + (+.123 - -8) * -3",       
+        "+3.5 + -4.7e2 * -5 + (2 - -8) * +3 / -2 - +1",       
+        "-3.5e2 + +4.7e-2 * -+-0.123 + (2 - 8) * 3 / 2 - +1 + 6e2", 
+        "3.5e2 + 4.7e-2 * -.123 + +(2 - -8) * +3 / -2 - +1 + +6e-2", 
+        "+3.5 + -4.7e2 * -5.5 + +(2 - 8) * -3 / 2 + +8e-2",   
+        "--3.5 + +4 * -+-(2.5e-2 + .123)",                    
+        "++3.5 + -4.7e2 * -.5 + +2e2 / 4 - .123e-2",          
+        "+3.5 * (4.7e2 - +3e2 / +(2e-2 + .5))"                
+    ]
+\end{lstlisting}
+
+下面是 \texttt{compare\_results.sh} 脚本的部分代码：
+
+\begin{lstlisting}[language=bash, breaklines=true]
+    #!/bin/bash
+
+    # Extract C++ results
+    cpp_results=$(grep -oP '计算结果: \K[-+]?([0-9]*\.[0-9]+|[0-9]+)' cpp_output.txt)
+    
+    # Extract Python results
+    python_results=$(grep -oP 'Result: \K[-+]?([0-9]*\.[0-9]+|[0-9]+)' python_output.txt)
+    
+    # Compare each result line by line
+    cpp_array=($cpp_results)
+    python_array=($python_results)
+    
+    echo "Comparing results (C++ - Python):"
+    num_tests=${#cpp_array[@]}
+    for ((i=0; i<$num_tests; i++)); do
+        cpp_val=${cpp_array[i]}
+        python_val=${python_array[i]}
+    
+        # Calculate the difference
+        difference=$(echo "$cpp_val - $python_val" | bc -l)
+    
+        # Print comparison result
+        echo "Test $((i+1)): C++ result = $cpp_val, Python result = $python_val, Difference = $difference"
+    done
+\end{lstlisting}    
+
+测试结果如下：
+
+\begin{lstlisting}[breaklines=true]
+    g++ -std=c++17 -g -O2 -o main main.cpp
+    ./main > cpp_output.txt
+    python3 test.py > python_output.txt
+    Comparing results (C++ - Python):
+    Test 1: C++ result = -24.31, Python result = -24.310000000000002, Difference = .000000000000002
+    Test 2: C++ result = 31.965, Python result = 31.965, Difference = 0
+    Test 3: C++ result = 325.889, Python result = 325.8895, Difference = -.0005
+    Test 4: C++ result = 2337.5, Python result = 2337.5, Difference = 0
+    Test 5: C++ result = 240.006, Python result = 240.005781, Difference = .000219
+    Test 6: C++ result = 334.054, Python result = 334.054219, Difference = -.000219
+    Test 7: C++ result = 2597.58, Python result = 2597.58, Difference = 0
+    Test 8: C++ result = 4.092, Python result = 4.092, Difference = 0
+    Test 9: C++ result = 288.499, Python result = 288.49877, Difference = .00023
+    Test 10: C++ result = -374.231, Python result = -374.23076923076917, Difference = -.00023076923083
+\end{lstlisting}    
+
+可以看到，C++ 程序和 Python 脚本的计算结果基本一致，差异非常小，符合预期。
+
+我们顺便给出C++的输出情况：
+
+\begin{lstlisting}[breaklines=true]
+    原始表达式: 3.5 + 4.7e2 * +-.123 + (2 - -8) * 3
+    预处理后: (3.5+4.7e2*(0-0.123)+(2+8)*3)
+    后缀表达式: 3.5 4.7 2 e 0 0.123 - * + 2 8 + 3 * + 
+    计算结果: -24.31
+    
+    原始表达式: -3.5e-2 + 4 * -+-(2.5 + 5.5)
+    预处理后: (0-3.5e(0-2)+4*(2.5+5.5))
+    后缀表达式: 0 3.5 0 2 - e - 4 2.5 5.5 + * + 
+    计算结果: 31.965
+    
+    原始表达式: +3.5e2 + +4.7e-2 * --5.5 + (+.123 - -8) * -3
+    预处理后: (0+3.5e2+4.7e(0-2)*5.5+(0+0.123+8)*(0-3))
+    后缀表达式: 0 3.5 2 e + 4.7 0 2 - e 5.5 * + 0 0.123 + 8 + 0 3 - * + 
+    计算结果: 325.889
+    
+    原始表达式: +3.5 + -4.7e2 * -5 + (2 - -8) * +3 / -2 - +1
+    预处理后: (0+3.5-4.7e2*(0-5)+(2+8)*3/(0-2)-1)
+    后缀表达式: 0 3.5 + 4.7 2 e 0 5 - * - 2 8 + 3 * 0 2 - / + 1 - 
+    计算结果: 2337.5
+    
+    原始表达式: -3.5e2 + +4.7e-2 * -+-0.123 + (2 - 8) * 3 / 2 - +1 + 6e2
+    预处理后: (0-3.5e2+4.7e(0-2)*0.123+(2-8)*3/2-1+6e2)
+    后缀表达式: 0 3.5 2 e - 4.7 0 2 - e 0.123 * + 2 8 - 3 * 2 / + 1 - 6 2 e + 
+    计算结果: 240.006
+    
+    原始表达式: 3.5e2 + 4.7e-2 * -.123 + +(2 - -8) * +3 / -2 - +1 + +6e-2
+    预处理后: (3.5e2+4.7e(0-2)*(0-0.123)+(2+8)*3/(0-2)-1+6e(0-2))
+    后缀表达式: 3.5 2 e 4.7 0 2 - e 0 0.123 - * + 2 8 + 3 * 0 2 - / + 1 - 6 0 2 - e + 
+    计算结果: 334.054
+    
+    原始表达式: +3.5 + -4.7e2 * -5.5 + +(2 - 8) * -3 / 2 + +8e-2
+    预处理后: (0+3.5-4.7e2*(0-5.5)+(2-8)*(0-3/2)+8e(0-2))
+    后缀表达式: 0 3.5 + 4.7 2 e 0 5.5 - * - 2 8 - 0 3 2 / - * + 8 0 2 - e + 
+    计算结果: 2597.58
+    
+    原始表达式: --3.5 + +4 * -+-(2.5e-2 + .123)
+    预处理后: (0+3.5+4*(2.5e(0-2)+0.123))
+    后缀表达式: 0 3.5 + 4 2.5 0 2 - e 0.123 + * + 
+    计算结果: 4.092
+    
+    原始表达式: ++3.5 + -4.7e2 * -.5 + +2e2 / 4 - .123e-2
+    预处理后: (0+3.5-4.7e2*(0-0.5)+2e2/4-0.123e(0-2))
+    后缀表达式: 0 3.5 + 4.7 2 e 0 0.5 - * - 2 2 e 4 / + 0.123 0 2 - e - 
+    计算结果: 288.499
+    
+    原始表达式: +3.5 * (4.7e2 - +3e2 / +(2e-2 + .5))
+    预处理后: (0+3.5*(4.7e2-3e2/(2e(0-2)+0.5)))
+    后缀表达式: 0 3.5 4.7 2 e 3 2 e 2 0 2 - e 0.5 + / - * + 
+    计算结果: -374.231
+\end{lstlisting}    
 
 \end{document}
-
-%%% Local Variables: 
-%%% mode: latex
-%%% TeX-master: t
-%%% End:

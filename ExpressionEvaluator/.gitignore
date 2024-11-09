@@ -10,3 +10,4 @@ report.synctex(busy)
 .idea/
 report.synctex.gz
 report.xdv
+tmp.cpp
