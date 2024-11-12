@@ -187,6 +187,7 @@ protected:
         } else {
             ; // Duplicate; do nothing
         }
+        balance(t);
     }
 
     void remove(const Comparable &x, BinaryNode *&t) {
