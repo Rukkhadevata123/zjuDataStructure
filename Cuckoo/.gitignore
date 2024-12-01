@@ -1,0 +1,17 @@
+test
+main
+missfont.log
+*.aux
+*.log
+.idea
+*.fdb_latexmk
+*.fls
+*.synctex
+*.synctex(busy)
+.idea/
+*.synctex.gz
+*.xdv
+test.cpp
+test
+student.h
+
