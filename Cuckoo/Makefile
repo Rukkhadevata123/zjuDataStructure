@@ -1,5 +1,8 @@
 all:
-	clang++ main.cpp -o main -std=c++20 -O2
+	clang++ main.cpp cuckoo.cpp -o main -std=c++20 -O2
+test:
+	./main
+	python3 test.py
 report:
 	xelatex report.tex
 clean:

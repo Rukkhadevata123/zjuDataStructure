@@ -43,431 +43,522 @@
 \pagestyle{fancy}
 \fancyhead{}
 \lhead{黎学圣, 3230102179}
-\chead{数据结构与算法第七次作业}
-\rhead{Nov.17th, 2024}
+\chead{布谷鸟哈希项目}
+\rhead{Dec.4th, 2024}
 
-\section{堆排序核心代码}
+\section{布谷鸟哈希表核心代码}
 
-我们分三步来实现堆排序算法。
-
-\subsection{\texttt{sift\_down}函数}
-
+\subsection{辅助函数：生成素数}
 \begin{lstlisting}[language=C++]
-    template <typename T> 
-    void sift_down(std::vector<T> &heap, int start, int end) {
-        int parent = start;         // 父节点下标
-        int child = 2 * parent + 1; // 左孩子下标
-    
-        while (child <= end) { // 防止越界
-            if (child + 1 <= end && heap[child] < heap[child + 1]) {
-                child += 1; // 选择较大的孩子
-            }
-    
-            if (heap[parent] < heap[child]) {
-                std::swap(heap[parent], heap[child]); // 调整父子节点
-                parent = child;
-                child = 2 * parent + 1;
-            } else {
+auto nextPrime(int n) -> int
+{
+    if (n <= 2)
+        return 2;
+    if (n % 2 == 0)
+        ++n; // 如果是偶数，先加1变成奇数
+
+    while (true)
+    {
+        bool isPrime = true;
+        int sqrt_n = static_cast<int>(std::sqrt(n));
+        for (int i = 3; i <= sqrt_n; i += 2)
+        {
+            if (n % i == 0)
+            {
+                isPrime = false;
                 break;
             }
         }
-    }
-\end{lstlisting}
-
-我们先初始化父子节点，要交换子节点为父节点下标的两倍加一或两倍加二，
-这由两个子节点的比较得出。（前提是没有越界）
-然后我们不断比较父节点和子节点的大小，
-如果父节点小于子节点，我们就交换两者的值，否则堆性质满足，退出循环。
-
-\subsection{\texttt{heapify}函数}
-
-\begin{lstlisting}[language=C++]
-    template <typename T> 
-    void heapify(std::vector<T> &heap) {
-        int n = heap.size();
-        for (int i = n / 2 - 1; i >= 0; --i) {
-            sift_down(heap, i, n - 1);
-        } // 从最后一个子节点的父节点开始调整
-    }
-\end{lstlisting}
-
-这里\texttt{for}循环的起始位置是$\lfloor \frac{n}{2} \rfloor$，
-意思是从最后一个子节点的父节点开始，逐渐向前遍历，完成堆的构建。
-
-\subsection{\texttt{heap\_sort}函数}
-
-\begin{lstlisting}[language=C++]
-    template <typename T> 
-    void heap_sort(std::vector<T> &arr) {
-        Timer timer; // 开始计时
-        heapify(arr); // 建堆
-    
-        for (int i = arr.size() - 1; i > 0; --i) {
-            std::swap(arr[0], arr[i]); // 将堆顶元素与最后一个元素交换
-            sift_down(arr, 0, i - 1);  // 调整堆
+        if (isPrime)
+        {
+            return n;
         }
-        // 计时器在析构函数中自动停止并输出时间
+        n += 2; // 只检查奇数
     }
+}
 \end{lstlisting}
+生成大于等于 \texttt{n} 的下一个素数。素数在哈希表中用于减少冲突。
+使用了C++20的auto返回值类型推导。
 
-接下来会介绍辅助函数，包括计时器。开始计时后，进行堆的构建，
-然后不断交换堆顶元素（即当前堆的最大元素）和最后一个元素，
-然后调整堆，直到堆的大小为1，进行了原地的升序排序。
-完成后计时器会自动停止并输出时间。
-
-\section{辅助方法}
-
-\subsection{计时器类}
-
-\begin{lstlisting}[language=C++, breaklines=true]
-    class Timer {
-        public:
-            Timer() : start_time_point(std::chrono::high_resolution_clock::now()) {}
-        
-            ~Timer() {
-                stop();
-            }
-        
-            void stop() {
-                auto end_time_point = std::chrono::high_resolution_clock::now();
-                auto start = std::chrono::time_point_cast<std::chrono::microseconds>(start_time_point).time_since_epoch().count();
-                auto end = std::chrono::time_point_cast<std::chrono::microseconds>(end_time_point).time_since_epoch().count();
-        
-                auto duration = end - start;
-                double seconds = duration * 0.000001;
-        
-                std::cout << std::fixed << std::setprecision(4) << "Duration: " << seconds << " seconds" << std::endl;
-            }
-        
-        private:
-            std::chrono::time_point<std::chrono::high_resolution_clock> start_time_point;
-        };    
-\end{lstlisting}
-
-我们实现的计时器在析构函数中会自动停止并输出时间，
-我们只需要在排序函数前创建一个计时器对象即可。函数执行完毕后，
-计时器对象会自动析构，输出时间。
-
-方法的关键是使用两个时间点构建\texttt{start}和\texttt{end}对象，相减后，转换为秒数输出，
-结果为秒数保留四位小数。
-
-\subsection{验证排序正确性}
-
+\subsection{定义可哈希概念}
 \begin{lstlisting}[language=C++]
-    template <typename T>
-    bool check_sort(const std::vector<T> &arr) {
-        for (size_t i = 1; i < arr.size(); ++i) {
-            if (arr[i - 1] > arr[i]) {
-                return false;
+template <typename T>
+concept Hashable = requires(T t) {
+    { std::hash<T>{}(t) } -> std::convertible_to<std::size_t>;
+    { t == t } -> std::convertible_to<bool>;
+};
+\end{lstlisting}
+\texttt{Hashable} 概念确保类型 \texttt{T} 可以被哈希并且支持相等比较。
+
+\subsection{定义可打印概念}
+\begin{lstlisting}[language=C++]
+template <typename T>
+concept Printable = requires(T t, std::ostream &os) {
+    { os << t } -> std::convertible_to<std::ostream &>;
+};
+\end{lstlisting}
+\texttt{Printable} 概念确保类型 \texttt{T} 可以被输出到流中。
+
+\subsection{哈希函数族类}
+\begin{lstlisting}[language=C++]
+template <Hashable Key, typename Hash = std::hash<Key>>
+class HashFunctionFamily
+{
+    std::vector<int> primes;
+    int num_functions;
+    Hash user_hash;
+
+public:
+    explicit HashFunctionFamily(const int num_functions) : num_functions(num_functions)
+    {
+        if (num_functions <= 0)
+        {
+            throw std::invalid_argument("Number of hash functions must be positive.");
+        }
+
+        for (int i = 0; i < num_functions; ++i)
+        {
+            primes.push_back(nextPrime(i + 1));
+        }
+    }
+
+    auto hash(const Key &key, const int function_index, int table_size) const -> int
+    {
+        return (user_hash(key) + primes[function_index]) % table_size;
+    }
+};
+\end{lstlisting}
+这个类生成多个哈希函数，每个函数使用不同的素数来减少冲突。
+
+\subsection{哈希表参数结构体}
+\begin{lstlisting}[language=C++]
+struct HashTableParams
+{
+    int initial_table_size = 47;
+    double max_load_factor = 0.5;
+    int max_rehash_attempts = 50;
+
+    HashTableParams() = default;
+
+    HashTableParams(int initial_table_size,
+                    double max_load_factor,
+                    int max_rehash_attempts)
+    {
+        this->initial_table_size = initial_table_size;
+        this->max_load_factor = max_load_factor;
+        this->max_rehash_attempts = max_rehash_attempts;
+    }
+
+    HashTableParams(const HashTableParams &other)
+    {
+        initial_table_size = other.initial_table_size;
+        max_load_factor = other.max_load_factor;
+        max_rehash_attempts = other.max_rehash_attempts;
+    }
+
+    HashTableParams &operator=(const HashTableParams &other)
+    {
+        if (this != &other)
+        {
+            initial_table_size = other.initial_table_size;
+            max_load_factor = other.max_load_factor;
+            max_rehash_attempts = other.max_rehash_attempts;
+        }
+        return *this;
+    }
+};
+
+static HashTableParams hashTableParams;
+\end{lstlisting}
+这个结构体定义了哈希表的参数，并提供了默认构造函数、复制构造函数和赋值运算符。
+哈希表的三个参数分别为初始表大小、最大负载因子和最大重新哈希尝试次数。
+
+\subsection{布谷鸟哈希表类}
+\begin{lstlisting}[language=C++]
+template <Hashable Key, typename Hash = std::hash<Key>>
+class CuckooHashTable
+{
+    int INITIAL_TABLE_SIZE = hashTableParams.initial_table_size;
+    double MAX_LOAD_FACTOR = hashTableParams.max_load_factor;
+    int MAX_REHASH_ATTEMPTS = hashTableParams.max_rehash_attempts;
+
+    std::vector<std::vector<std::optional<Key>>> tables; // 多张哈希表
+    int num_elements;                                    // 元素个数
+    int table_size;                                      // 当前哈希表大小
+    HashFunctionFamily<Key, Hash> hash_functions;
+
+    void rehash();
+    auto loadFactor() const -> double;
+
+public:
+    explicit CuckooHashTable(const int num_functions);
+    void insert(const Key &key);
+    void insert(Key &&key);
+    auto find(const Key &key) const -> bool;
+    void erase(const Key &key);
+    void printTable() const requires Printable<Key>;
+};
+\end{lstlisting}
+这个类实现了布谷鸟哈希表的主要功能，包括插入、查找、删除和重新哈希。
+哈希表参数从结构体中获取，哈希函数族类用于生成多个哈希函数。
+这里的模板确保元素类型是可哈希的，用户自定义类必须实现哈希函数和相等比较，
+这有点像Java中的接口，但是C++的模板更加灵活。
+C++的标准库类如int、string等显然都满足概念约束。
+
+\subsubsection{构造函数}
+\begin{lstlisting}[language=C++]
+explicit CuckooHashTable(const int num_functions) : num_elements(0), table_size(INITIAL_TABLE_SIZE),
+                                                    hash_functions(num_functions)
+{
+    tables.assign(num_functions, std::vector<std::optional<Key>>(table_size));
+}
+\end{lstlisting}
+构造函数初始化哈希表的参数，并分配多张哈希表。
+\texttt{std::optional} 的意思是这个位置可能为空，
+这样可以区分空位置和有值的位置。这就跟Rust的Option类似。
+
+\subsubsection{重新哈希函数}
+\begin{lstlisting}[language=C++]
+void rehash()
+{
+    std::cout << "Rehashing..." << std::endl;
+    auto old_tables = tables;                                                  // 保存旧表
+    table_size = nextPrime(2 * table_size);                                    // 扩大表
+    tables.assign(tables.size(), std::vector<std::optional<Key>>(table_size)); // 重新分配表
+
+    num_elements = 0;
+
+    // 重新插入元素
+    for (const auto &old_table : old_tables)
+    {
+        for (const auto &key : old_table)
+        {
+            if (key.has_value())
+            {
+                insert(std::move(key.value()));
             }
         }
-        return true;
     }
+}
 \end{lstlisting}
+重新哈希函数在负载因子超过最大值或插入失败时重新分配表并重新插入元素。
+先备份旧表，然后扩大表（大小为两倍大小的下一个素数），
+然后重新分配表，然后重新插入元素。
 
-我们的程序是升序排序，这里只需检查相邻元素是否递增即可，如果有逆序对，
-返回\texttt{false}，否则返回\texttt{true}。
-
-\subsection{与标准堆排序比较}
-
+\subsubsection{计算负载因子函数}
 \begin{lstlisting}[language=C++]
-    void stl_heap_sort(std::vector<T> &arr) {
-        Timer timer; // 开始计时
-        std::make_heap(arr.begin(), arr.end());
-        std::sort_heap(arr.begin(), arr.end());
-        // 计时器在析构函数中自动停止并输出时间
+auto loadFactor() const -> double
+{
+    return static_cast<double>(num_elements) / (tables.size() * table_size);
+}
+\end{lstlisting}
+计算负载因子，用于判断是否需要重新哈希。
+
+\subsubsection{插入元素函数（左值引用）}
+\begin{lstlisting}[language=C++]
+void insert(const Key &key)
+{
+    Key temp_key = key;
+    insert(std::move(temp_key));
+}
+\end{lstlisting}
+插入元素（左值引用），调用右值引用版本的插入函数。
+这样可以少写一些代码，提高代码复用性。
+
+\subsubsection{插入元素函数（右值引用）}
+\begin{lstlisting}[language=C++]
+void insert(Key &&key)
+{
+    if (loadFactor() > MAX_LOAD_FACTOR)
+    {
+        rehash();
     }
 
-    template <typename T>
-    void compare(std::vector<T> &arr) {
-        std::vector<T> arr1(arr);
-        std::vector<T> arr2(arr);
-    
-        std::cout << "My Heap Sort: ";
-        heap_sort(arr1);
-    
-        std::cout << "STL Heap Sort: ";
-        stl_heap_sort(arr2);
-    
-        if (check_sort(arr1) && check_sort(arr2)) {
-            std::cout << "Two sorting algorithms are correct." << std::endl;
-        } else {
-            std::cout << "Two sorting algorithms are wrong." << std::endl;
+    int attempts = 0;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> table_dist(0, tables.size() - 1);
+
+    while (attempts < MAX_REHASH_ATTEMPTS)
+    {
+        for (int i = 0; i < tables.size(); ++i)
+        {
+            int index = hash_functions.hash(key, i, table_size);
+            if (!tables[i][index].has_value())
+            {
+                tables[i][index] = std::move(key);
+                ++num_elements;
+                return;
+            }
+            // 替换已有元素
+            std::swap(key, tables[i][index].value());
+        }
+
+        // 没有可用位置，随机踢出一个元素
+        int table_index = table_dist(gen);
+        int index = hash_functions.hash(key, table_index, table_size);
+        std::swap(key, tables[table_index][index].value());
+        ++attempts;
+    }
+
+    // 超过最大次数
+    rehash();
+    insert(std::move(key));
+}
+\end{lstlisting}
+插入元素（右值引用）是布谷鸟哈希表的核心功能之一。该函数的主要任务是将一个元素插入到哈希表中，并在必要时进行重新哈希。
+
+首先，函数检查当前的负载因子（即表中已使用的槽位与总槽位的比例）。如果负载因子超过了预设的最大值，则调用 \texttt{rehash()} 函数进行重新哈希，以扩大哈希表的容量。
+
+接下来，函数初始化一个随机数生成器 \texttt{std::random\_device} 和一个梅森旋转算法引擎 \texttt{std::mt19937}，用于在插入过程中随机选择表和槽位。
+
+函数进入一个循环，最多尝试 \texttt{MAX\_REHASH\_ATTEMPTS} 次插入操作。
+在每次尝试中，函数遍历所有的哈希表，并计算元素在每个表中的哈希值。
+如果找到一个空槽（即 \texttt{std::optional} 没有值），
+则将元素插入该槽，并增加元素计数 \texttt{num\_elements}，然后返回。
+
+如果所有的槽位都已被占用，函数会随机选择一个表和槽位，将当前元素与该槽位中的元素交换，并继续尝试插入交换后的元素。
+
+如果在最大尝试次数内仍未能成功插入元素，函数会调用 \texttt{rehash()} 函数进行重新哈希，然后再次尝试插入元素。
+
+这种插入策略确保了哈希表在高负载情况下仍能高效地插入元素，同时通过重新哈希和随机踢出策略来减少冲突。
+
+\subsubsection{查找元素函数}
+\begin{lstlisting}[language=C++]
+auto find(const Key &key) const -> bool
+{
+    for (int i = 0; i < tables.size(); ++i)
+    {
+        int index = hash_functions.hash(key, i, table_size);
+        if (tables[i][index].has_value() && tables[i][index].value() == key)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+\end{lstlisting}
+查找元素，返回元素是否存在。核心是遍历哈希函数族生成的哈希值，查找元素是否存在。
+
+\subsubsection{删除元素函数}
+\begin{lstlisting}[language=C++]
+void erase(const Key &key)
+{
+    for (int i = 0; i < tables.size(); ++i)
+    {
+        int index = hash_functions.hash(key, i, table_size);
+        if (tables[i][index].has_value() && tables[i][index].value() == key)
+        {
+            tables[i][index].reset();
+            --num_elements;
+            return;
+        }
+    }
+
+    throw std::runtime_error("Key not found.");
+}
+\end{lstlisting}
+删除元素，如果元素存在则删除，否则抛出异常。
+删除元素是使用 \texttt{std::optional} 的 \texttt{reset()} 函数
+来实现的，将槽位重置为空。
+
+\subsubsection{打印哈希表函数}
+\begin{lstlisting}[language=C++]
+void printTable() const
+    requires Printable<Key>
+{
+    for (int i = 0; i < tables.size(); ++i)
+    {
+        std::cout << "Table " << i << ": ";
+        for (int j = 0; j < table_size; ++j)
+        {
+            if (tables[i][j].has_value())
+            {
+                std::cout << tables[i][j].value() << " ";
+            }
+            else
+            {
+                std::cout << "- ";
+            }
         }
         std::cout << std::endl;
     }
+}
 \end{lstlisting}
+打印哈希表的状态，要求元素类型实现 \texttt{Printable} 概念。
 
-首先使用一个函数封装有计时器的STL堆排序，然后我们比较两种排序算法的结果，
-最后我们检验了排序的正确性。
+\section{布谷鸟哈希测试}
 
-\subsection{测试辅助函数}
-
+\subsection{测试代码}
 \begin{lstlisting}[language=C++]
-    // 生成测试序列
-    enum class Order {
-        ASC, // 升序
-        DESC, // 降序
-        RANDOM // 随机
-    };
-    
-    enum class Repeat {
-        NO, // 无重复
-        YES // 有重复
-    };
-\end{lstlisting}
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <fstream>
+#include <random>
+#include "cuckoo.h"
+#include "student.h"
 
-这里是测试序列的类型，我们对整数和浮点数都进行了六次测试，使用枚举变量
-排列组合。
+int main()
+{
+    std::vector<int> data_sizes;
+    for (int i = 1000; i <= 20000; i += 100)
+    {
+        data_sizes.push_back(i);
+    }
+    constexpr int num_hash_functions = 20;
 
-\begin{lstlisting}[language=C++]
-    template <typename T>
-    void fill_data(std::vector<T>& arr, std::function<T()> generator, Repeat repeat) {
-        if (repeat == Repeat::NO) {
-            std::unordered_set<T> unique_elements;
-            for (long long i = 0; i < arr.size(); ++i) {
-                T value;
-                do {
-                    value = generator();
-                } while (unique_elements.find(value) != unique_elements.end());
-                unique_elements.insert(value);
-                arr[i] = value;
+    std::ofstream insert_outfile("insert_times.txt");
+    std::ofstream search_outfile("search_times.txt");
+    if (!insert_outfile.is_open() || !search_outfile.is_open())
+    {
+        std::cerr << "Failed to open file for writing.\n";
+        return 1;
+    }
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    for (const auto &num_students : data_sizes)
+    {
+        std::vector<Student> students;
+        for (int i = 1; i <= num_students; ++i)
+        {
+            students.emplace_back("Stu" + std::to_string(i), "Tom" + std::to_string(i));
+        }
+
+        // INITIAL_TABLE_SIZE, MAX_LOAD_FACTOR, MAX_REHASH_ATTEMPTS
+        hashTableParams = HashTableParams(203, 0.45, 100);
+
+        // 测试插入性能
+        {
+            CuckooHashTable<Student> cuckoo_table(num_hash_functions);
+            auto start_time = std::chrono::high_resolution_clock::now();
+            for (const auto &student : students)
+            {
+                cuckoo_table.insert(student);
             }
-        } else {
-            for (long long i = 0; i < arr.size(); ++i) {
-                arr[i] = generator();
-            }
+            auto end_time = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> duration = end_time - start_time;
+            insert_outfile << num_students << " " << duration.count() << "\n";
+            std::cout << "Inserted " << num_students << " students in " << duration.count() << " seconds.\n";
+
+            // 测试查找性能
+            std::uniform_int_distribution<> dis(0, num_students - 1);
+            int random_index = dis(gen);
+            const auto &random_student = students[random_index];
+
+            start_time = std::chrono::high_resolution_clock::now();
+            cuckoo_table.find(random_student);
+            end_time = std::chrono::high_resolution_clock::now();
+            duration = end_time - start_time;
+            search_outfile << num_students << " " << duration.count() << "\n";
+            std::cout << "Searched for student " << random_student.id << " in " << duration.count() << " seconds.\n";
         }
     }
+
+    insert_outfile.close();
+    search_outfile.close();
+    return 0;
+}
 \end{lstlisting}
 
-这段代码我们用来填充数据，\texttt{generator}是一个返回随机数的函数，用于生成对应类型的序列。
-稍后我们会看到，我们使用了
-\texttt{std::uniform\_int\_distribution}
-和\texttt{std::uniform\_real\_distribution}来生成随机数。
-在\texttt{Repeat::NO}的情况下，我们使用\texttt{std::unordered\_set}来保证没有重复元素。
-否则，我们直接生成随机数，插入到参数\texttt{arr}中。
+\subsection{测试说明}
+在这段代码中，我们测试了布谷鸟哈希表的插入和查找性能。具体步骤如下：
 
-下面是生成整数的方法:
+\begin{enumerate}
+    \item 初始化数据集规模，从 1000 到 20000，每次增加 100。
+    \item 定义哈希函数的数量为 20。
+    \item 打开两个输出文件，分别用于记录插入时间和查找时间。
+    \item 使用随机数生成器生成随机数据。
+    \item 对于每个数据集规模：
+    \begin{enumerate}
+        \item 生成对应数量的学生数据。
+        \item 设置哈希表参数，包括初始表大小、最大负载因子和最大重新哈希尝试次数。
+        \item 测试插入性能：
+        \begin{enumerate}
+            \item 创建布谷鸟哈希表。
+            \item 记录插入开始时间。
+            \item 插入所有学生数据。
+            \item 记录插入结束时间。
+            \item 计算插入时间并写入文件。
+        \end{enumerate}
+        \item 测试查找性能：
+        \begin{enumerate}
+            \item 随机选择一个学生。
+            \item 记录查找开始时间。
+            \item 查找该学生。
+            \item 记录查找结束时间。
+            \item 计算查找时间并写入文件。
+        \end{enumerate}
+    \end{enumerate}
+    \item 关闭输出文件。
+\end{enumerate}
 
-\begin{lstlisting}[language=C++]
-    std::vector<int> generate_data_int(long long size, Order order, Repeat repeat) {
-        std::vector<int> arr(size);
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<int> dis(1, size);
-    
-        auto generator = [&]() { return dis(gen); };
-        fill_data<int>(arr, generator, repeat);
-    
-        if (order == Order::ASC) {
-            std::sort(arr.begin(), arr.end());
-        } else if (order == Order::DESC) {
-            std::sort(arr.begin(), arr.end(), std::greater<int>());
-        }
-    
-        return arr;
-    }
-\end{lstlisting}
+通过这些测试，我们可以评估布谷鸟哈希表在不同数据集规模下的插入和查找性能，并将结果记录到文件中以便进一步分析。
 
-在C++中生成随机数，我们先随机数种子，比如这里的\texttt{std::random\_device}，
-然后用\texttt{std::mt19937}引擎生成随机数，最后用\texttt{std::uniform\_int\_distribution}
-标准正态分布生成随机数。
+\section{测试图像}
 
-填充数据方法的参数需要一个函数对象，这里我们使用了lambda表达式，
-用刚刚创建的\texttt{dis}对象生成随机数，然后我们使用\texttt{fill\_data}函数填充数据。
+在本节中，我们展示了布谷鸟哈希表的插入和查找时间复杂度的测试结果图像。
 
-接着检查\texttt{Order}枚举变量，如果是升序，我们使用标准可的排序算法进行排序
-；如果是降序，我们增加一个比较函数\texttt{std::greater<int>()}，然后排序。
+\subsection{插入时间复杂度}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{insert_times.png}
+    \caption{Cuckoo Hash Table Insert Time Complexity}
+    \label{fig:insert_times}
+\end{figure}
 
-返回的\texttt{arr}是一个生成的整数序列。
+从图中可以看出，随着学生数量的增加，插入时间总体上呈现出上升的趋势。
+在某些点上，插入时间有明显的跳跃，这表示发生了重新哈希（rehashing）
+的操作。
 
-对于浮点数，只要把整数的正态分布对象改成浮点数的即可，
-即\texttt{std::uniform\_real\_distribution}。
+在两个跳跃之间的斜线部分，插入时间相对稳定且逐渐增加。
+这些斜线部分表明，在两次重新哈希之间，随着学生数量的增加，
+插入操作的时间也在逐渐增加，但增长较为平缓。
+这种趋势反映了布谷鸟哈希表在未达到重新哈希阈值时的正常工作状态，
+即随着负载的增加，插入时间线性增长，但总体上仍然保持高效。
 
-\section{进行测试}
+\subsection{查找时间复杂度}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{search_times.png}
+    \caption{Cuckoo Hash Table Search Time Complexity}
+    \label{fig:search_times}
+\end{figure}
 
-下面是我们的测试代码: 
+从图中可以看出，搜索时间呈现出明显的波动。
+总体来看，搜索时间在不同学生数量下波动较大，
+但总体趋势并不明显，显示出布谷鸟哈希表在搜索操作上的随机性和不确定性。
 
-\begin{lstlisting}[language=C++]
-    int main() {
-        long long size = 1e7 + 5;
-    
-        // 测试不同排列组合
-        std::vector<std::pair<Order, Repeat>> combinations = {
-            {Order::ASC, Repeat::NO},
-            {Order::ASC, Repeat::YES},
-            {Order::DESC, Repeat::NO},
-            {Order::DESC, Repeat::YES},
-            {Order::RANDOM, Repeat::NO},
-            {Order::RANDOM, Repeat::YES}
-        };
-    
-        for (const auto& combination : combinations) {
-            Order order = combination.first;
-            Repeat repeat = combination.second;
-    
-            std::cout << "Testing with Order: " 
-                      << (order == Order::ASC ? "ASC" : (order == Order::DESC ? "DESC" : "RANDOM"))
-                      << ", Repeat: " 
-                      << (repeat == Repeat::NO ? "NO" : "YES") 
-                      << std::endl;
-    
-            std::cout << "Test integer:" << '\n';
-            std::vector<int> data_int = generate_data_int(size, order, repeat);
-            compare(data_int);
-    
-            std::cout << "Test double:" << '\n';
-            std::vector<double> data_double = generate_data_double(size, order, repeat);
-            compare(data_double);
-        }
-    
-        return 0;
-    }
-\end{lstlisting}
+在两个显著峰值之间的斜线部分，搜索时间的波动较为频繁，
+但总体上保持在较低的范围内。这些斜线部分表明，在两次显著峰值之间，
+搜索时间虽然有波动，但总体上仍然保持在较低的水平，
+显示出布谷鸟哈希表在搜索操作上的高效性和稳定性。
 
-作业要求至少1e6的数据，这里我们使用了1e7+5的数据量。
-
-我们对六种排列组合进行测试，每种情况下，我们生成整数和浮点数序列，
-每次测试都有对应结果。
-
-我们使用\texttt{clang++ test.cpp -o test -std=c++20 -O2}
-来进行编译，然后运行\texttt{./test}进行测试。
-
-完成测试总共大概需要一分半到两分钟。
-
-以下是某一次的测试输出:
+\subsection{运行测试}
+要运行测试并生成图像，请使用以下命令：
 
 \begin{verbatim}
-    Testing with Order: ASC, Repeat: NO
-    Test integer:
-    My Heap Sort: Duration: 0.5548 seconds
-    STL Heap Sort: Duration: 0.4965 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 0.6206 seconds
-    STL Heap Sort: Duration: 0.4936 seconds
-    Two sorting algorithms are correct.
-    
-    Testing with Order: ASC, Repeat: YES
-    Test integer:
-    My Heap Sort: Duration: 0.5784 seconds
-    STL Heap Sort: Duration: 0.4909 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 0.6434 seconds
-    STL Heap Sort: Duration: 0.4913 seconds
-    Two sorting algorithms are correct.
-    
-    Testing with Order: DESC, Repeat: NO
-    Test integer:
-    My Heap Sort: Duration: 0.6010 seconds
-    STL Heap Sort: Duration: 0.5742 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 0.6939 seconds
-    STL Heap Sort: Duration: 0.6015 seconds
-    Two sorting algorithms are correct.
-    
-    Testing with Order: DESC, Repeat: YES
-    Test integer:
-    My Heap Sort: Duration: 0.6129 seconds
-    STL Heap Sort: Duration: 0.6417 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 0.6897 seconds
-    STL Heap Sort: Duration: 0.6178 seconds
-    Two sorting algorithms are correct.
-    
-    Testing with Order: RANDOM, Repeat: NO
-    Test integer:
-    My Heap Sort: Duration: 2.0687 seconds
-    STL Heap Sort: Duration: 2.0665 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 2.0905 seconds
-    STL Heap Sort: Duration: 1.9466 seconds
-    Two sorting algorithms are correct.
-    
-    Testing with Order: RANDOM, Repeat: YES
-    Test integer:
-    My Heap Sort: Duration: 1.8029 seconds
-    STL Heap Sort: Duration: 1.6197 seconds
-    Two sorting algorithms are correct.
-    
-    Test double:
-    My Heap Sort: Duration: 2.0983 seconds
-    STL Heap Sort: Duration: 1.9387 seconds
-    Two sorting algorithms are correct.
+make
+make test
 \end{verbatim}
 
-下面是时间对比表格:
+\noindent 该命令将执行以下步骤：
+\begin{enumerate}
+    \item 编译并运行 \texttt{main.cpp}，生成插入和查找时间数据文件 \texttt{insert\_times.txt} 和 \texttt{search\_times.txt}。
+    \item 使用 Python 脚本 \texttt{test.py} 读取数据文件并生成图像。
+\end{enumerate}
 
-\begin{table}[H]
-    \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        数据类型 & 我的堆排序时间 (秒) & STL 堆排序时间 (秒) \\
-        \hline
-        \multicolumn{3}{|c|}{Order: ASC, Repeat: NO} \\
-        \hline
-        整数 & 0.5548 & 0.4965 \\
-        浮点数 & 0.6206 & 0.4936 \\
-        \hline
-        \multicolumn{3}{|c|}{Order: ASC, Repeat: YES} \\
-        \hline
-        整数 & 0.5784 & 0.4909 \\
-        浮点数 & 0.6434 & 0.4913 \\
-        \hline
-        \multicolumn{3}{|c|}{Order: DESC, Repeat: NO} \\
-        \hline
-        整数 & 0.6010 & 0.5742 \\
-        浮点数 & 0.6939 & 0.6015 \\
-        \hline
-        \multicolumn{3}{|c|}{Order: DESC, Repeat: YES} \\
-        \hline
-        整数 & 0.6129 & 0.6417 \\
-        浮点数 & 0.6897 & 0.6178 \\
-        \hline
-        \multicolumn{3}{|c|}{Order: RANDOM, Repeat: NO} \\
-        \hline
-        整数 & 2.0687 & 2.0665 \\
-        浮点数 & 2.0905 & 1.9466 \\
-        \hline
-        \multicolumn{3}{|c|}{Order: RANDOM, Repeat: YES} \\
-        \hline
-        整数 & 1.8029 & 1.6197 \\
-        浮点数 & 2.0983 & 1.9387 \\
-        \hline
-    \end{tabular}
-    \caption{不同排列组合下的排序时间}
-    \label{tab:sorting_times}
-\end{table}
+\noindent 以下是 \texttt{Makefile} 中的相关部分：
 
-可以看到，首先我们的排序算法是正确的。
-在开启O2优化的情况下，我们的堆排序算法的效率和STL堆排序算法的效率相差不大，
-标准库的排序稍微快一些。浮点数的时间比整数稍微长一点，原因可能是浮点数据类型的比较
-和交换操作比整数类型的操作耗时更长。
+\begin{verbatim}
+test:
+    ./main
+    python3 test.py
+\end{verbatim}
 
-关于我们的堆排序和STL堆排序的时间差异，可能的原因包括
-
-\begin{itemize}
-    \item \textbf{实现细节}：STL的\texttt{std::make\_heap}和\texttt{std::sort\_heap}是经过高度优化的通用算法，适用于各种类型的数据和比较函数。它们在实现上可能包含了一些我们自定义实现中没有的优化。
-    \item \textbf{内存访问模式}：STL算法可能在内存访问模式上进行了优化，减少了缓存未命中（cache miss）的情况，从而提高了性能。
-    \item \textbf{编译器优化}：编译器在优化STL库代码时，可能会进行一些特定的优化，而这些优化在我们自定义实现的代码中可能无法完全发挥作用。值得一提的是，在不开启优化的情况下，STL堆排序的性能会比我们自定义实现的堆排序更差。
-    \item \textbf{算法复杂度}：虽然堆排序的时间复杂度在最坏情况下是$O(n \log n)$，但常数因子也会影响实际运行时间。STL实现可能在常数因子上进行了优化。
-\end{itemize}
+通过运行 \texttt{make test}，可以生成并查看布谷鸟哈希表的插入和查找时间复杂度图像。
 
 \end{document}
-
-
-
-%%% Local Variables: 
-%%% mode: latex
-%%% TeX-master: t
-%%% End:

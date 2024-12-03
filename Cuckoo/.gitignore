@@ -9,6 +9,7 @@ missfont.log
 *.synctex
 *.synctex(busy)
 .idea/
+.vscode
 *.synctex.gz
 *.xdv
 test.cpp
